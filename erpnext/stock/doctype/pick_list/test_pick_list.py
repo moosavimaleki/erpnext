@@ -1316,3 +1316,39 @@ class TestPickList(IntegrationTestCase):
 
 		for loc in pl.locations:
 			self.assertEqual(loc.batch_no, batch2)
+
+	def test_validate_stock_qty_for_batch_item(self):
+		warehouse = "_Test Warehouse - _TC"
+		item = make_item(
+			"Test Batch Qty Validation Item",
+			properties={
+				"is_stock_item": 1,
+				"has_batch_no": 1,
+				"create_new_batch": 1,
+				"batch_number_series": "BTH-VLDTN-.######",
+			},
+		).name
+
+		# Create stock entry with batch
+		se = make_stock_entry(item=item, to_warehouse=warehouse, qty=10)
+		batch_no = get_batch_from_bundle(se.items[0].serial_and_batch_bundle)
+
+		# Create pick list with higher picked qty than available batch qty
+		pl = frappe.get_doc({
+			"doctype": "Pick List",
+			"company": "_Test Company",
+			"purpose": "Material Transfer",
+			"locations": [
+				{
+					"item_code": item,
+					"qty": 15,
+					"stock_qty": 15,
+					"picked_qty": 15,
+					"warehouse": warehouse,
+					"batch_no": batch_no,
+				}
+			],
+		})
+
+		# Should raise validation error
+		self.assertRaises(frappe.ValidationError, pl.save)
