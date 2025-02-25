@@ -94,8 +94,10 @@ class PickList(Document):
 
 			if row.batch_no and row.picked_qty:
 				batch_qty = get_batch_qty(row.batch_no, row.warehouse, row.item_code)
+				# Extract qty from batch data
+				batch_qty_value = batch_qty[0].get('qty', 0) if batch_qty else 0
 
-				if row.picked_qty > batch_qty:
+				if row.picked_qty > batch_qty_value:
 					frappe.throw(
 						_(
 							"At Row #{0}: The picked quantity {1} for the item {2} is greater than available stock {3} for the batch {4} in the warehouse {5}. Please restock the item."
@@ -103,7 +105,7 @@ class PickList(Document):
 							row.idx,
 							row.picked_qty,
 							row.item_code,
-							batch_qty,
+							batch_qty_value,
 							row.batch_no,
 							bold(row.warehouse),
 						),
